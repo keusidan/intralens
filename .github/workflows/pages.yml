@@ -31,9 +31,10 @@ jobs:
       - name: Build the static site
         run: go run ./cmd/genstatic --out dist
 
+      # Pages must be enabled once by hand:
+      # Settings → Pages → Build and deployment → Source: GitHub Actions.
+      # The workflow token is not allowed to turn it on by itself.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:

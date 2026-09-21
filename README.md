@@ -29,7 +29,10 @@ API 呼び出しは [42paris/intraoapi42](https://github.com/42paris/intraoapi42
 
 ## GitHub Pages 版 (閲覧モード)
 
-`main` に push すると `.github/workflows/pages.yml` が静的版をビルドして Pages に公開します
+初回だけ GitHub の設定が必要です: **Settings → Pages → Build and deployment → Source: GitHub Actions**
+(ワークフロー用トークンには Pages を有効化する権限がないため、ここだけ手動です)。
+
+設定後は `main` に push するたびに `.github/workflows/pages.yml` が静的版をビルドして公開します
 (URL は Actions の deploy ジョブに表示されます。既定では `https://<ユーザー名>.github.io/intralens/`)。
 
 Pages は静的ホスティングなので Go バックエンドは動きません。公開されるのは**閲覧モード**です。
