@@ -27,6 +27,32 @@ API 呼び出しは [42paris/intraoapi42](https://github.com/42paris/intraoapi42
 | コード生成 | 同じリクエストの curl / Go (intraoapi42) / Python スニペット |
 | モデル閲覧 | 24 個のスキーマをツリー表示。`$ref` はリンクで辿れ、「このモデルを返すエンドポイント」も逆引き |
 
+## GitHub Pages 版 (閲覧モード)
+
+`main` に push すると `.github/workflows/pages.yml` が静的版をビルドして Pages に公開します
+(URL は Actions の deploy ジョブに表示されます。既定では `https://<ユーザー名>.github.io/intralens/`)。
+
+Pages は静的ホスティングなので Go バックエンドは動きません。公開されるのは**閲覧モード**です。
+
+| | Pages (閲覧モード) | ローカル起動 |
+|---|---|---|
+| エンドポイント / モデル閲覧、検索、スキーマツリー | ✅ | ✅ |
+| curl / Go / Python スニペット生成 | ✅ | ✅ |
+| 「実行」ボタンで API 呼び出し | ローカルに接続すれば ✅ | ✅ |
+
+Pages 上のページから自分のマシンの intra-Lens に接続すると、そのまま実行もできます:
+
+```bash
+intralens --allow-origin https://<ユーザー名>.github.io   # 許可したオリジンだけが接続可能
+```
+
+起動後、Pages 側の上部バナーに `http://127.0.0.1:4242` を入れて「接続」。接続先は localStorage に保存され、
+ヘッダーの「切断」で解除できます。
+
+> HTTPS のページから `http://127.0.0.1` への接続は、localhost を安全なオリジンとして扱う
+> Chrome / Firefox では許可されます。Safari など一部のブラウザでは制限される場合があります。
+> その場合はローカルの `http://127.0.0.1:4242/` を直接開いてください (機能は同じです)。
+
 ## 必要なもの
 
 - Go 1.25 以上 (それ未満でも `GOTOOLCHAIN=auto` なら自動で取得されます)
@@ -56,6 +82,7 @@ intralens --scopes public,projects # 要求する OAuth2 スコープ
 intralens --staging                # staging イントラに接続
 intralens --demo                   # ダミーイントラ (認証不要)
 intralens --web web --log debug    # web/ をディスクから配信 (フロント開発用)
+intralens --allow-origin https://user.github.io  # 指定オリジンからの呼び出しを許可
 ```
 
 ## 画面の使い方
@@ -74,6 +101,7 @@ internal/server/        HTTP ルーティング、パラメータ変換、呼び
   └ registry.go         operationId → intraoapi42 のメソッド (ここが許可リスト)
 internal/spec/          openapi.yaml の埋め込みとパラメータ型インデックス
 internal/demo/          認証情報なしで試すためのダミーイントラ
+cmd/genstatic/          GitHub Pages 用の静的ビルド (spec をページに焼き込む)
 web/                    フロントエンド (依存ライブラリなしの HTML/CSS/JS)
 ```
 
@@ -103,6 +131,7 @@ web/                    フロントエンド (依存ライブラリなしの HT
 ```bash
 make check   # fmt + vet + test
 make dev     # web/ をディスク配信し、リロードだけでフロントの変更を確認
+make static  # Pages と同じ静的版を dist/ に生成 (python3 -m http.server などで確認)
 ```
 
 ## 注意
@@ -110,3 +139,4 @@ make dev     # web/ をディスク配信し、リロードだけでフロント
 - `internal/spec/openapi.yaml` は 42 公式のものではなく、intraoapi42 が手書きで整備している非公式 spec です。カバー範囲は現在 8 エンドポイント。
 - 42 API のレート制限は概ね 2 req/秒・1200 req/時です。429 は intraoapi42 が自動で再試行します。
 - 既定では 127.0.0.1 にのみ待ち受けます。`--addr` で外部公開する場合、その端末の全員があなたの認証情報で API を叩けることになります。
+- `--allow-origin` は指定したオリジンにだけ CORS を許可します (既定は無効)。`*` のような広い指定をすると、閲覧中の任意のサイトがあなたの認証情報で 42 API を叩けてしまうため避けてください。

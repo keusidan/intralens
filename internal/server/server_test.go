@@ -235,3 +235,76 @@ func TestSpecAndStatusEndpoints(t *testing.T) {
 		t.Errorf("status = %#v, want every registry operation to be advertised", status)
 	}
 }
+
+func TestCORSAllowList(t *testing.T) {
+	fake := newFakeIntra(t)
+
+	doc, err := spec.Load()
+	if err != nil {
+		t.Fatalf("load spec: %v", err)
+	}
+	config := intraoapi42.ProductionConfig.WithClientCredentials("uid", "secret")
+	config.ServerURL = fake.server.URL + "/v2"
+	config.Config.TokenURL = fake.server.URL + "/oauth/token"
+	client, err := intraoapi42.New(config)
+	if err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+
+	srv, err := New(Options{
+		Client:         client,
+		Doc:            doc,
+		Static:         fstest.MapFS{"index.html": &fstest.MapFile{Data: []byte("ok")}},
+		Configured:     true,
+		AllowedOrigins: []string{"https://user.github.io"},
+	})
+	if err != nil {
+		t.Fatalf("create server: %v", err)
+	}
+	handler := srv.Handler()
+
+	tests := []struct {
+		name   string
+		origin string
+		want   string
+	}{
+		{"allowed origin is echoed", "https://user.github.io", "https://user.github.io"},
+		{"trailing slash still matches", "https://user.github.io/", "https://user.github.io"},
+		{"unknown origin gets no header", "https://evil.example", ""},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/api/status", nil)
+			req.Header.Set("Origin", tc.origin)
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, req)
+
+			if got := recorder.Header().Get("Access-Control-Allow-Origin"); got != tc.want {
+				t.Errorf("Access-Control-Allow-Origin = %q, want %q", got, tc.want)
+			}
+		})
+	}
+
+	req := httptest.NewRequest(http.MethodOptions, "/api/call", nil)
+	req.Header.Set("Origin", "https://user.github.io")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusNoContent {
+		t.Errorf("preflight status = %d, want 204", recorder.Code)
+	}
+}
+
+func TestCORSDisabledByDefault(t *testing.T) {
+	fake := newFakeIntra(t)
+	handler := newTestServer(t, fake, true)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/status", nil)
+	req.Header.Set("Origin", "https://user.github.io")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, req)
+
+	if got := recorder.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Errorf("no origin should be allowed by default, got %q", got)
+	}
+}

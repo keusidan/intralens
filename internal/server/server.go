@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	intraoapi42 "github.com/42paris/intraoapi42"
@@ -34,6 +35,9 @@ type Options struct {
 	ServerURL  string
 	Scopes     []string
 	Configured bool // client credentials were supplied
+
+	// AllowedOrigins may drive this server cross-origin (see withCORS).
+	AllowedOrigins []string
 }
 
 // Server serves the UI and brokers calls to the 42 API.
@@ -72,7 +76,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/status", s.handleStatus)
 	mux.HandleFunc("POST /api/call", s.handleCall)
 	mux.Handle("/", http.FileServerFS(s.opts.Static))
-	return s.withLogging(mux)
+	return s.withLogging(withCORS(mux, s.opts.AllowedOrigins))
 }
 
 func (s *Server) withLogging(next http.Handler) http.Handler {
@@ -278,4 +282,37 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
+}
+
+/* --------------------------------------------------------------------- CORS */
+
+// withCORS lets a page served from another origin (for example the read-only
+// copy on GitHub Pages) drive a locally running intra-Lens. Only the origins
+// passed on the command line are accepted: the browser would otherwise let any
+// site issue calls with this machine's 42 credentials.
+func withCORS(next http.Handler, allowed []string) http.Handler {
+	if len(allowed) == 0 {
+		return next
+	}
+	index := make(map[string]bool, len(allowed))
+	for _, origin := range allowed {
+		index[strings.TrimSuffix(origin, "/")] = true
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := strings.TrimSuffix(r.Header.Get("Origin"), "/")
+		if origin != "" && index[origin] {
+			header := w.Header()
+			header.Set("Access-Control-Allow-Origin", origin)
+			header.Set("Access-Control-Allow-Headers", "Content-Type")
+			header.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			header.Set("Access-Control-Max-Age", "600")
+			header.Add("Vary", "Origin")
+		}
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

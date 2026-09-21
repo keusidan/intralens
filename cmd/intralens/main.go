@@ -41,6 +41,7 @@ type options struct {
 	timeout  time.Duration
 	staging  bool
 	logLevel string
+	origins  string
 }
 
 func main() {
@@ -59,6 +60,7 @@ func run() error {
 	flag.DurationVar(&opts.timeout, "timeout", 30*time.Second, "per-call timeout towards the 42 API")
 	flag.BoolVar(&opts.staging, "staging", false, "talk to the staging intranet instead of production")
 	flag.BoolVar(&opts.demo, "demo", false, "serve sample data from a bundled fake intranet (no credentials needed)")
+	flag.StringVar(&opts.origins, "allow-origin", "", "comma separated origins allowed to call this server cross-origin, e.g. https://user.github.io")
 	flag.StringVar(&opts.logLevel, "log", "info", "log level: debug, info, warn, error")
 	flag.Parse()
 
@@ -111,15 +113,21 @@ func run() error {
 			"hint", "export INTRA42_UID / INTRA42_SECRET, or put them in .env")
 	}
 
+	origins := splitList(opts.origins)
+	if len(origins) > 0 {
+		logger.Info("cross-origin calls enabled", "origins", origins)
+	}
+
 	srv, err := server.New(server.Options{
-		Client:     client,
-		Doc:        document,
-		Static:     static,
-		Logger:     logger,
-		Timeout:    opts.timeout,
-		ServerURL:  config.ServerURL,
-		Scopes:     scopes,
-		Configured: configured,
+		Client:         client,
+		Doc:            document,
+		Static:         static,
+		Logger:         logger,
+		Timeout:        opts.timeout,
+		ServerURL:      config.ServerURL,
+		Scopes:         scopes,
+		Configured:     configured,
+		AllowedOrigins: origins,
 	})
 	if err != nil {
 		return err
@@ -210,14 +218,16 @@ func firstEnv(names ...string) string {
 	return ""
 }
 
-func splitScopes(raw string) []string {
-	var scopes []string
-	for _, scope := range strings.Split(raw, ",") {
-		if scope = strings.TrimSpace(scope); scope != "" {
-			scopes = append(scopes, scope)
+func splitScopes(raw string) []string { return splitList(raw) }
+
+func splitList(raw string) []string {
+	var items []string
+	for _, item := range strings.Split(raw, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			items = append(items, item)
 		}
 	}
-	return scopes
+	return items
 }
 
 // loadEnvFile reads simple KEY=VALUE lines. Existing environment variables win,

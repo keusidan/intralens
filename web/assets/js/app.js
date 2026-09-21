@@ -60,24 +60,97 @@
     });
   }
 
-  /** Warn once, at the top of the page, when calls cannot work yet. */
+  /** The bar under the topbar: says why calls are unavailable, and offers a fix. */
   function renderBanner() {
+    var API = global.IntraLens.api;
     var status = state.status;
-    if (!status) {
-      dom.banner.className = 'banner banner-error';
-      dom.banner.textContent = 'バックエンドに接続できません。API 実行は使用できません。';
-      return;
-    }
-    if (status.configured) {
+
+    dom.banner.textContent = '';
+
+    if (status && status.configured) {
       dom.banner.className = 'banner is-hidden';
       return;
     }
+
+    if (API.isBrowseOnly()) {
+      // Static copy (GitHub Pages): no backend at all, but the visitor can
+      // point the page at an intra-Lens running on their own machine.
+      dom.banner.className = 'banner';
+      dom.banner.appendChild(el('span', {
+        text: '閲覧モードです。ローカルで intra-Lens を起動すると、この画面から実行できます:'
+      }));
+      dom.banner.appendChild(el('code', { text: 'intralens --allow-origin ' + location.origin }));
+      dom.banner.appendChild(connectForm());
+      return;
+    }
+
+    if (!status) {
+      dom.banner.className = 'banner banner-error';
+      dom.banner.appendChild(el('span', {
+        text: 'バックエンド (' + (API.getBase() || location.origin) + ') に接続できません。'
+      }));
+      if (API.isStatic()) dom.banner.appendChild(connectForm());
+      return;
+    }
+
     dom.banner.className = 'banner';
-    dom.banner.textContent = '';
     dom.banner.appendChild(el('span', {
       text: '認証情報が未設定です。INTRA42_UID と INTRA42_SECRET を設定して再起動すると API を実行できます。'
     }));
     dom.banner.appendChild(el('code', { text: 'INTRA42_UID=... INTRA42_SECRET=... make run' }));
+  }
+
+  /** Input + button to attach the static page to a local backend. */
+  function connectForm() {
+    var API = global.IntraLens.api;
+    var input = el('input', {
+      class: 'field banner-field',
+      type: 'url',
+      value: API.getBase() || 'http://127.0.0.1:4242',
+      placeholder: 'http://127.0.0.1:4242',
+      onkeydown: function (event) { if (event.key === 'Enter') connect(this.value); }
+    });
+
+    var form = el('span', { class: 'banner-form' }, [
+      input,
+      el('button', {
+        class: 'copy',
+        type: 'button',
+        text: '接続',
+        onclick: function () { connect(input.value); }
+      })
+    ]);
+
+    if (API.getBase()) {
+      form.appendChild(el('button', {
+        class: 'copy',
+        type: 'button',
+        text: '切断',
+        onclick: function () { connect(''); }
+      }));
+    }
+    return form;
+  }
+
+  /** Re-point the UI at `target` ('' = none) and reload the backend state. */
+  function connect(target) {
+    var API = global.IntraLens.api;
+    API.setBase(target);
+
+    API.status().then(function (status) {
+      state.status = status;
+      global.IntraLens.runtime.status = status;
+      renderMeta();
+      renderBanner();
+      route();
+    })['catch'](function (err) {
+      state.status = null;
+      global.IntraLens.runtime.status = null;
+      renderMeta();
+      renderBanner();
+      dom.banner.className = 'banner banner-error';
+      dom.banner.appendChild(el('span', { class: 'muted', text: ' (' + err.message + ')' }));
+    });
   }
 
   function renderMeta() {
@@ -89,8 +162,21 @@
       class: status && status.configured ? 'auth-ok' : 'auth-off',
       text: status && status.configured
         ? '● 認証済み (' + (status.scopes || []).join(', ') + ')'
-        : '○ 認証なし'
+        : (global.IntraLens.api.isBrowseOnly() ? '○ 閲覧モード' : '○ 認証なし')
     }));
+    // When the static page drives a remote backend, offer a way back out.
+    if (global.IntraLens.api.getBase()) {
+      dom.meta.appendChild(el('span', { class: 'meta-link' }, [
+        el('span', { class: 'muted', text: '接続先 ' + global.IntraLens.api.getBase() }),
+        el('button', {
+          class: 'copy',
+          type: 'button',
+          text: '切断',
+          onclick: function () { connect(''); }
+        })
+      ]));
+    }
+
     dom.meta.appendChild(el('a', {
       href: 'https://github.com/42paris/intraoapi42',
       target: '_blank',

@@ -3,7 +3,7 @@ GO      ?= go
 BIN     := bin/intralens
 ADDR    ?= 127.0.0.1:4242
 
-.PHONY: help run demo dev build test fmt vet check clean
+.PHONY: help run demo dev build static test fmt vet check clean
 
 help: ## このヘルプを表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
@@ -21,6 +21,9 @@ build: ## 単一バイナリをビルド (UI は埋め込み)
 	$(GO) build -o $(BIN) ./cmd/intralens
 	@echo "→ $(BIN)"
 
+static: ## GitHub Pages と同じ静的版を dist/ に生成
+	$(GO) run ./cmd/genstatic --out dist
+
 test: ## テストを実行
 	$(GO) test ./...
 
@@ -33,4 +36,4 @@ vet: ## go vet
 check: fmt vet test ## fmt + vet + test
 
 clean: ## 生成物を削除
-	rm -rf bin
+	rm -rf bin dist

@@ -490,12 +490,15 @@ kbd {
   border: 1px solid var(--border);
   border-radius: 6px;
 }
+.banner-form { display: inline-flex; align-items: center; gap: 6px; }
+.banner-field { flex: none; width: 210px; padding: 3px 8px; }
 .banner-error {
   background: color-mix(in srgb, var(--danger) 16%, var(--bg-elevated));
   border-bottom-color: color-mix(in srgb, var(--danger) 40%, var(--border));
 }
 
 .spec-meta code { color: var(--text-muted); }
+.meta-link { display: inline-flex; align-items: center; gap: 6px; }
 .auth-ok { color: var(--ok); }
 .auth-off { color: var(--text-muted); }
 

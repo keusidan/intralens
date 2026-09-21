@@ -619,13 +619,14 @@
 
     var resultArea = el('div', { class: 'result-area' });
     var status = global.IntraLens.runtime.status;
-    var callable = !status || (status.configured && (!status.operations || status.operations.indexOf(op.id) !== -1));
+    var callable = !!status && status.configured &&
+      (!status.operations || status.operations.indexOf(op.id) !== -1);
     var runButton = el('button', {
       class: 'run',
       type: 'button',
       text: '実行  (Ctrl+Enter)',
       disabled: !callable,
-      title: callable ? '' : '認証情報が未設定、またはこの操作は Go クライアント側に未実装です',
+      title: callable ? '' : 'バックエンド未接続、認証情報が未設定、またはこの操作が Go クライアント側に未実装です',
       onclick: function () { execute(); }
     });
 
@@ -685,7 +686,9 @@
         class: 'hint',
         text: callable
           ? 'ローカルの intra-Lens サーバ経由で 42 API を呼び出します (認証・リトライは intraoapi42 が担当)。'
-          : '実行するには INTRA42_UID / INTRA42_SECRET を設定してサーバを再起動してください。'
+          : (global.IntraLens.api.isBrowseOnly()
+              ? '閲覧モードです。上部のバナーからローカルの intra-Lens に接続すると実行できます。'
+              : '実行するには INTRA42_UID / INTRA42_SECRET を設定してサーバを再起動してください。')
       }),
       resultArea
     ]));
