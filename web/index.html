@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>intra-Lens · 42 Intra API</title>
+<meta name="description" content="42 Intra API (api.intra.42.fr v2) のエンドポイントとモデルを一覧できるブラウザビューア">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🔍</text></svg>">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu-toggle" class="icon-button" type="button" aria-label="メニュー">☰</button>
+  <a class="brand" href="#/">
+    <span class="brand-mark">42</span>
+    <span class="brand-name">intra-Lens</span>
+  </a>
+  <div id="spec-meta" class="spec-meta"></div>
+  <div class="topbar-actions">
+    <kbd class="hint-key" title="キーボードショートカット (?)">?</kbd>
+    <button id="theme-toggle" class="icon-button" type="button" aria-label="テーマ切り替え">☾</button>
+  </div>
+</header>
+
+<div id="banner" class="banner is-hidden"></div>
+
+<div class="layout">
+  <aside id="sidebar" class="sidebar">
+    <div class="nav-tabs">
+      <button class="nav-tab is-active" type="button" data-tab="endpoints">エンドポイント</button>
+      <button class="nav-tab" type="button" data-tab="models">モデル</button>
+    </div>
+    <div class="search-row">
+      <input id="search" class="search" type="search" autocomplete="off" spellcheck="false" placeholder="エンドポイントを検索  (/)">
+    </div>
+    <div id="nav-count" class="nav-count"></div>
+    <nav id="nav-list" class="nav-list"></nav>
+  </aside>
+
+  <main id="detail" class="detail" tabindex="-1"></main>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/spec.js"></script>
+<script src="assets/js/render.js"></script>
+<script src="assets/js/response.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
