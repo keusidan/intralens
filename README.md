@@ -43,14 +43,16 @@ Pages は静的ホスティングなので Go バックエンドは動きませ�
 | curl / Go / Python スニペット生成 | ✅ | ✅ |
 | 「実行」ボタンで API 呼び出し | ローカルに接続すれば ✅ | ✅ |
 
-Pages 上のページから自分のマシンの intra-Lens に接続すると、そのまま実行もできます:
+Pages 上のページから自分のマシンの intra-Lens に接続すると、そのまま実行もできます。
+clone したディレクトリで、接続を許可するオリジンを指定して起動してください:
 
 ```bash
-intralens --allow-origin https://<ユーザー名>.github.io   # 許可したオリジンだけが接続可能
+make run  ALLOW_ORIGIN=https://<ユーザー名>.github.io   # 本物の 42 API (.env が必要)
+make demo ALLOW_ORIGIN=https://<ユーザー名>.github.io   # 認証情報なしでダミーデータ
 ```
 
 起動後、Pages 側の上部バナーに `http://127.0.0.1:4242` を入れて「接続」。接続先は localStorage に保存され、
-ヘッダーの「切断」で解除できます。
+ヘッダーの「切断」で解除できます。許可したオリジン以外からの接続は拒否されます。
 
 > HTTPS のページから `http://127.0.0.1` への接続は、localhost を安全なオリジンとして扱う
 > Chrome / Firefox では許可されます。Safari など一部のブラウザでは制限される場合があります。
@@ -64,6 +66,8 @@ intralens --allow-origin https://<ユーザー名>.github.io   # 許可したオ
 ## クイックスタート
 
 ```bash
+git clone https://github.com/keusidan/intralens && cd intralens
+
 # 1. 認証情報なしで GUI を試す (ダミーデータを返す内蔵イントラを使用)
 make demo        # → http://127.0.0.1:4242/
 
@@ -75,18 +79,26 @@ make run                # → http://127.0.0.1:4242/
 INTRA42_UID=xxx INTRA42_SECRET=yyy make run
 ```
 
+`make run` を認証情報なしで起動すると `no credentials found ... calls are disabled` と警告が出ます。
+画面は開きますが「実行」は無効のままなので、`.env` を用意するか `make demo` を使ってください。
+
 単一バイナリが欲しい場合は `make build` (UI は `embed` で埋め込まれるので配布はバイナリ 1 個で完結します)。
 
 ### よく使うオプション
 
+`make build` で `bin/intralens` を作った場合のフラグです (`make run ARGS` ではなく直接起動する場合):
+
 ```bash
-intralens --addr 0.0.0.0:8080      # 待ち受けアドレス (既定は 127.0.0.1:4242)
-intralens --scopes public,projects # 要求する OAuth2 スコープ
-intralens --staging                # staging イントラに接続
-intralens --demo                   # ダミーイントラ (認証不要)
-intralens --web web --log debug    # web/ をディスクから配信 (フロント開発用)
-intralens --allow-origin https://user.github.io  # 指定オリジンからの呼び出しを許可
+bin/intralens --addr 0.0.0.0:8080  # 待ち受けアドレス (既定は 127.0.0.1:4242)
+bin/intralens --scopes public,projects            # 要求する OAuth2 スコープ
+bin/intralens --staging                           # staging イントラに接続
+bin/intralens --demo                              # ダミーイントラ (認証不要)
+bin/intralens --web web --log debug               # web/ をディスクから配信 (フロント開発用)
+bin/intralens --allow-origin https://user.github.io  # 指定オリジンからの呼び出しを許可
 ```
+
+`make run` / `make demo` / `make dev` は `ADDR` と `ALLOW_ORIGIN` を受け取ります
+(例: `make demo ADDR=127.0.0.1:5000 ALLOW_ORIGIN=https://user.github.io`)。
 
 ## 画面の使い方
 

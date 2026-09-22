@@ -77,9 +77,13 @@
       // point the page at an intra-Lens running on their own machine.
       dom.banner.className = 'banner';
       dom.banner.appendChild(el('span', {
-        text: '閲覧モードです。ローカルで intra-Lens を起動すると、この画面から実行できます:'
+        text: '閲覧モードです。clone したディレクトリで次を実行すると、この画面から呼び出せます:'
       }));
-      dom.banner.appendChild(el('code', { text: 'intralens --allow-origin ' + location.origin }));
+      dom.banner.appendChild(el('code', { text: 'make run ALLOW_ORIGIN=' + location.origin }));
+      dom.banner.appendChild(el('span', {
+        class: 'muted',
+        text: '(認証情報がなければ make demo ALLOW_ORIGIN=… でダミーデータを試せます)'
+      }));
       dom.banner.appendChild(connectForm());
       return;
     }
